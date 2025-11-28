@@ -1,3 +1,12 @@
+// Route callback pour les paiements Pi
+app.post("/api/payments/callback", (req, res) => {
+  console.log("📩 Paiement reçu :", req.body);
+
+  // Ici tu traites la validation du paiement Pi
+  // Exemple : vérifier l'identifiant de paiement, mettre à jour ta base de données, etc.
+
+  res.status(200).send({ message: "Paiement validé ✅" });
+});
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
