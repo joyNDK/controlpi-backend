@@ -5,6 +5,7 @@ const cors = require("cors");
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.static(__dirname));
 
 // Servir le fichier validation-key.txt
 app.get("/validation-key.txt", (req, res) => {
