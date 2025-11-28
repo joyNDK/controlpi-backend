@@ -1,14 +1,14 @@
 const express = require("express");
-const cors = require("cors");
 const path = require("path");
 
 const app = express();
-app.use(cors());
-app.use(express.json());
 
-// Servir tous les fichiers statiques du dossier courant
-app.use(express.static(__dirname));
+// Route explicite pour servir la clé Pi
+app.get("/validation-key.txt", (req, res) => {
+  res.sendFile(path.join(__dirname, "validation-key.txt"));
+});
 
+// Route de test
 app.get("/", (req, res) => {
   res.send("✅ ControlPi Backend en ligne !");
 });
