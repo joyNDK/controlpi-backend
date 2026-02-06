@@ -1,14 +1,21 @@
-// server.js ou index.js - Backend ControlPi pour Vercel
+// server.js - Backend ControlPi pour Vercel (CORRIGÉ)
 const express = require('express');
 const cors = require('cors');
 const app = express();
 
-// Configuration Vercel
+// ========== CONFIGURATION VERCEL (CORRIGÉ) ==========
 const PORT = process.env.PORT || 3000;
 const FRONTEND_URL = 'https://controlpi-frontend.vercel.app';
-const BACKEND_URL = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
 
-// Middleware
+// IMPORTANT: URL FIXE pour Pi Network - TOUJOURS la production
+const PI_BACKEND_URL = 'https://controlpi-backend.vercel.app';
+
+// URL dynamique pour l'API (peut être preview ou production)
+const CURRENT_BACKEND_URL = process.env.VERCEL_URL 
+  ? `https://${process.env.VERCEL_URL}` 
+  : 'http://localhost:3000';
+
+// ========== MIDDLEWARE ==========
 app.use(cors({
   origin: [FRONTEND_URL, 'http://localhost:3000', 'http://localhost:5173', 'https://controlpi-frontend.vercel.app'],
   credentials: true
@@ -21,7 +28,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// ========== FICHIER VALIDATION PI NETWORK ==========
+// ========== FICHIER VALIDATION PI NETWORK (CORRIGÉ) ==========
 app.get('/validation-key.txt', (req, res) => {
   console.log('📄 Validation file requested for Pi Network');
   res.set({
@@ -30,26 +37,26 @@ app.get('/validation-key.txt', (req, res) => {
     'Access-Control-Allow-Origin': '*'
   });
   
-  // Utilise le domaine Vercel réel
-  const domain = process.env.VERCEL_URL ? process.env.VERCEL_URL.replace('https://', '') : 'controlpi-backend.vercel.app';
-  const content = `pi://verify-domain?domain=${domain}`;
+  // TOUJOURS utiliser l'URL de production pour Pi Network
+  const content = `pi://verify-domain?domain=controlpi-backend.vercel.app`;
   
   res.send(content);
   console.log(`✅ Validation file sent: ${content}`);
 });
 
-// ========== ROUTES PRINCIPALES ==========
+// ========== ROUTES PRINCIPALES (CORRIGÉES) ==========
 
-// Root
+// Root - Montre les deux URLs
 app.get('/', (req, res) => {
   res.json({
     status: 'online',
     service: 'ControlPi Backend',
     platform: 'Vercel',
     urls: {
-      backend: BACKEND_URL,
+      backend_current: CURRENT_BACKEND_URL,
+      backend_pi: PI_BACKEND_URL,  // URL pour Pi Network
       frontend: FRONTEND_URL,
-      validation: `${BACKEND_URL}/validation-key.txt`
+      validation: `${PI_BACKEND_URL}/validation-key.txt`  // URL fixe pour Pi
     },
     endpoints: [
       'GET /health',
@@ -60,7 +67,8 @@ app.get('/', (req, res) => {
       'POST /api/payments/complete',
       'POST /api/payments/callback'
     ],
-    pi_network: 'ready'
+    pi_network: 'ready',
+    note: 'Pi Network doit utiliser les URLs avec backend_pi'
   });
 });
 
@@ -72,7 +80,8 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     memory: process.memoryUsage(),
-    node_version: process.version
+    node_version: process.version,
+    pi_backend_url: PI_BACKEND_URL
   });
 });
 
@@ -86,7 +95,7 @@ app.post('/api/auth', (req, res) => {
       session: `sess_${Date.now()}`
     },
     message: 'Authentifié sur Vercel',
-    backend: BACKEND_URL
+    backend: PI_BACKEND_URL  // URL fixe pour Pi
   });
 });
 
@@ -103,7 +112,7 @@ app.post('/api/payments/create', (req, res) => {
         platform: 'Vercel',
         app: 'ControlPi',
         timestamp: new Date().toISOString(),
-        backend_url: BACKEND_URL
+        backend_url: PI_BACKEND_URL  // URL fixe pour Pi
       }
     }
   });
@@ -115,7 +124,7 @@ app.post('/api/payments/approve', (req, res) => {
     success: true,
     txid: `tx_vercel_${Date.now()}`,
     message: 'Paiement approuvé sur Vercel',
-    backend: BACKEND_URL
+    backend: PI_BACKEND_URL  // URL fixe pour Pi
   });
 });
 
@@ -126,7 +135,7 @@ app.post('/api/payments/complete', (req, res) => {
     message: 'Paiement complété sur Vercel',
     paymentId: req.body.paymentId,
     txid: req.body.txid,
-    backend: BACKEND_URL
+    backend: PI_BACKEND_URL  // URL fixe pour Pi
   });
 });
 
@@ -138,7 +147,7 @@ app.post('/api/payments/callback', (req, res) => {
     received: true,
     timestamp: new Date().toISOString(),
     platform: 'Vercel',
-    backend: BACKEND_URL
+    backend: PI_BACKEND_URL  // URL fixe pour Pi
   });
 });
 
@@ -148,14 +157,19 @@ app.get('/api/test', (req, res) => {
     success: true,
     message: 'ControlPi Backend API fonctionne sur Vercel!',
     urls: {
-      validation_file: `${BACKEND_URL}/validation-key.txt`,
+      validation_file: `${PI_BACKEND_URL}/validation-key.txt`,  // URL fixe
       frontend: FRONTEND_URL,
-      health_check: `${BACKEND_URL}/health`
+      health_check: `${PI_BACKEND_URL}/health`,
+      current_backend: CURRENT_BACKEND_URL,
+      pi_backend: PI_BACKEND_URL
     },
     instructions: [
-      '1. Utilise /validation-key.txt pour Pi Developer Portal',
-      '2. Le frontend doit pointer vers cette URL',
-      '3. Test avec: curl ' + BACKEND_URL
+      '1. Utilise cette URL pour Pi Developer Portal:',
+      `   ${PI_BACKEND_URL}/validation-key.txt`,
+      '2. Le frontend doit pointer vers cette URL:',
+      `   ${PI_BACKEND_URL}`,
+      '3. Test avec:',
+      `   curl ${PI_BACKEND_URL}`
     ]
   });
 });
@@ -174,7 +188,8 @@ app.use((req, res) => {
       '/api/auth',
       '/api/payments/create',
       '/api/test'
-    ]
+    ],
+    pi_backend_url: PI_BACKEND_URL
   });
 });
 
@@ -184,7 +199,8 @@ app.use((err, req, res, next) => {
   res.status(500).json({
     error: 'Internal Server Error',
     message: err.message,
-    platform: 'Vercel'
+    platform: 'Vercel',
+    pi_backend_url: PI_BACKEND_URL
   });
 });
 
@@ -200,19 +216,22 @@ if (process.env.VERCEL) {
     console.log(`
 ✅ ControlPi Backend pour Vercel
 📍 Port: ${PORT}
-📡 URL: ${BACKEND_URL}
+📡 URL actuelle: ${CURRENT_BACKEND_URL}
+🎯 URL Pi Network: ${PI_BACKEND_URL}
 🔗 Frontend: ${FRONTEND_URL}
 
 === TESTS ===
-1. ${BACKEND_URL}
-2. ${BACKEND_URL}/health
-3. ${BACKEND_URL}/validation-key.txt
-4. ${BACKEND_URL}/api/test
+1. ${CURRENT_BACKEND_URL}
+2. ${PI_BACKEND_URL}/validation-key.txt
+3. ${PI_BACKEND_URL}/health
+4. ${PI_BACKEND_URL}/api/test
 
 === PI DEVELOPER PORTAL ===
-• Domain Verification URL: ${BACKEND_URL}/validation-key.txt
-• API Base URL: ${BACKEND_URL}
-• Callback URL: ${BACKEND_URL}/api/payments/callback
+• Domain Verification URL: ${PI_BACKEND_URL}/validation-key.txt
+• API Base URL: ${PI_BACKEND_URL}
+• Callback URL: ${PI_BACKEND_URL}/api/payments/callback
+
+⚠️ IMPORTANT: Pi Network doit utiliser ${PI_BACKEND_URL}
     `);
   });
 }
