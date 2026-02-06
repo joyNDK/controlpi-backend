@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "*.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "*.jsx",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/validation-key.txt",
+      "dest": "/validation-key.txt",
+      "headers": {
+        "Content-Type": "text/plain",
+        "Cache-Control": "no-cache"
+      }
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/"
+    }
+  ]
+}
